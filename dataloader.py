@@ -27,8 +27,8 @@ def read_db(filename="data/demo_DB_train.csv"):
     return data_array
 
 
-class AfibDataset(Dataset):
-    """ Afib dataset."""
+class TestDataset(Dataset):
+    """ Test dataset."""
 
     # Initialize your data, download, etc.
     def __init__(self, filename="data/demo_DB", is_train=True, transform=None):
@@ -68,8 +68,8 @@ def transform(x):
 
 def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
     all_data = read_db()
-    # dataset = AfibDataset(transform=transform)
-    dataset = AfibDataset()
+    # dataset = TestDataset(transform=transform)
+    dataset = TestDataset()
     dataloader = DataLoader(dataset=dataset,
                               batch_size=batch_size,
                               shuffle=shuffle,
