@@ -8,7 +8,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import sklearn.metrics as sk
 
-import dataloader as dl
+import dataloader_improved as dl
 import numpy as np
 # Training settings
 batch_size = 64
@@ -23,7 +23,7 @@ class Net(nn.Module):
 
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(68, 200)
+        self.fc1 = nn.Linear(109, 200)
         self.fc2 = nn.Linear(200, 100)
         self.fc3 = nn.Linear(100, 10)
         # self.fc2 = nn.Linear(200, 400)
