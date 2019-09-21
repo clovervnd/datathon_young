@@ -13,6 +13,7 @@ from syft.workers.virtual import VirtualWorker
 from syft.frameworks.torch.federated import utils
 
 logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.DEBUG)
 
 LOG_INTERVAL = 25
 
@@ -25,6 +26,13 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(4 * 4 * 50, 500)
         self.fc2 = nn.Linear(500, 10)
 
+        # self.fc1 = nn.Linear(17, 200)
+        # self.fc2 = nn.Linear(200, 400)
+        # self.fc3 = nn.Linear(400, 300)
+        # self.fc4 = nn.Linear(300, 100)
+        # self.fc5 = nn.Linear(100, 10)
+        # self.fc_final = nn.Linear(10, n_class)
+        
     def forward(self, x):
         x = f.relu(self.conv1(x))
         x = f.max_pool2d(x, 2, 2)
@@ -34,6 +42,14 @@ class Net(nn.Module):
         x = f.relu(self.fc1(x))
         x = self.fc2(x)
         return f.log_softmax(x, dim=1)
+        # in_size = x.size(0)
+        # x = F.relu(self.fc1(x))
+        # x = F.relu(self.fc2(x))
+        # x = F.relu(self.fc3(x))
+        # x = F.relu(self.fc4(x))
+        # x = F.relu(self.fc5(x))
+        # x = self.fc_final(x)
+        # return F.log_softmax(x)
 
 
 def train_on_batches(worker, batches, model_in, device, lr):
