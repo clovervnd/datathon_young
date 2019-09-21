@@ -14,7 +14,7 @@ from dt_visualize import save_confusion_matrix, save_roc_curve
 # Training settings
 batch_size = 64
 n_class=2
-is_mimic = 0
+is_mimic = 1
 
 
 train_loader = dl.get_dataloader(is_train=True, batch_size=batch_size)
@@ -104,8 +104,8 @@ def test():
     print (total_softmax)
     print (total_target)
 
-    np.savetxt("total_softmax.txt", total_softmax, delimiter = ',', fmt = '%f')
-    np.savetxt("total_target.txt", total_target, delimiter = ',', fmt = '%f')
+    np.savetxt(str(is_mimic) + "_total_softmax.txt", total_softmax, delimiter = ',', fmt = '%f')
+    np.savetxt(str(is_mimic) + "_total_target.txt", total_target, delimiter = ',', fmt = '%f')
     # Draw AUROC curve
     save_roc_curve(total_target, total_softmax)
     # Draw Confusion Matrix
@@ -120,6 +120,6 @@ def test():
 
 # test()
 
-for epoch in range(1, 10):
+for epoch in range(1, 5):
     train(epoch)
     test()

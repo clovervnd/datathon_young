@@ -29,6 +29,7 @@ logging.getLogger().setLevel(logging.DEBUG)
 LOG_INTERVAL = 25
 DATATHON = 1
 n_class =2 
+outcome_index = 0
 
 ###########################################
 ##############  Reference #################
@@ -81,16 +82,12 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     if is_train:
         mean_values = data.mean()
         np_mean = np.asarray(mean_values)
-        # print (np_mean.shape)
-        np_mean = np.append(np_mean[3:4], np_mean[5:45], axis=0)
-        # print (np_mean.shape)
+        np_mean = np_mean[5:47]
         np.savetxt("train_mean.txt", np_mean, delimiter = ',', fmt = '%f')
 
         std_values = data.std()
         np_std = np.asarray(std_values)
-        # print (np_std.shape)
-        np_std = np.append(np_std[3:4], np_std[5:45], axis=0)
-        # print (np_std.shape)
+        np_std = np_std[5:47]
         np.savetxt("train_std.txt", np_std, delimiter = ',', fmt = '%f')
     # print (data)
     data_array = data.values
@@ -102,32 +99,40 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     # print (std_values)
 
     if is_train:
-        print (data_array[:, 4].shape)
-        print (Counter(data_array[:, 4]))
-        data_array, temp = random_oversampling(data_array, data_array[:, 4].astype(np.int) , np.random.randint(100))
+        print (data_array[:, outcome_index].shape)
+        print (Counter(data_array[:, outcome_index]))
+        data_array, temp = random_oversampling(data_array, data_array[:, outcome_index].astype(np.int) , np.random.randint(100))
 
         print (Counter(temp))
         print (data_array.shape)
 
     return data_array
 
-def transform(x):
+def transform(x, is_mimic):
     # Normlaize data
     train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
     train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
-    means = np.append(train_mean, np.asarray([0.5 for i in range(68)]))
-    stds = np.append(train_std, np.asarray([0.5 for i in range(68)]))
+    if is_mimic == 1:
+        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
+        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(69)]))
+    else:
+        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(63)]))
+        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(63)]))
 
     transform_x = (x - means) /stds
 
     return transform_x
 
-def transform_tensor(x):
+def transform_tensor(x, is_mimic):
     # Normlaize data
     train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
     train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
-    means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(68)]))
-    stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(68)]))
+    if is_mimic == 1:
+        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
+        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(69)]))
+    else:
+        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(63)]))
+        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(63)]))
     # print (x)
     means = torch.from_numpy(means_numpy).float()
     stds = torch.from_numpy(stds_numpy).float()
@@ -136,22 +141,20 @@ def transform_tensor(x):
 
     return transform_x
 
-def preprocessed_data(dataset_name, is_train):
+def preprocessed_data(dataset_name, is_train, is_mimic):
     if is_train:
         filename = "data/" + dataset_name + "_train.csv"
     else:
         filename = "data/" + dataset_name + "_test.csv"
     xy = read_db(filename, is_train)
-    segment1 =xy[:,3:4]
-    segment2 =xy[:, 5:]
-    x_data = np.append(segment1, segment2,axis=1)
-    y_data = xy[:, 4]
+    x_data = xy[:,5:]
+    y_data = xy[:, outcome_index]
 
-    x_data = transform(x_data)
+    x_data = transform(x_data, is_mimic)
 
     return torch.tensor(x_data).float(), torch.tensor(y_data).long()
 
-print (preprocessed_data("MIMIC_DB", True))
+print (preprocessed_data("MIMIC_DB", True, 1))
 
 
 def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
@@ -170,7 +173,7 @@ class TestDataset(Dataset):
     """ Test dataset."""
 
     # Initialize your data, download, etc.
-    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None):
+    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None, is_mimic):
         if is_train:
             filename = filename + "_train.csv"
         else:
@@ -178,22 +181,17 @@ class TestDataset(Dataset):
         xy = read_db(filename, is_train)
         self.len = xy.shape[0]
 
-        segment1 =xy[:,3:4] 
-        segment2 =xy[:, 5:]
-        # print (segment1.shape)
-        # print (segment2.shape)
-        temp_x_data = np.append(segment1, segment2,axis=1)
-        # print (temp_x_data.shape)
-        self.x_data = torch.from_numpy(temp_x_data).float()
-        self.y_data = torch.from_numpy(xy[:, 4])
+        self.x_data = torch.from_numpy(xy[:,5:]).float()
+        self.y_data = torch.from_numpy(xy[:, outcome_index])
         self.transform = transform_tensor
+        self.is_mimic = is_mimic 
 
     def __getitem__(self, index):
         x = self.x_data[index]
         y = self.y_data[index]
 
         if self.transform :
-            x = self.transform(x)
+            x = self.transform(x, self.is_mimic)
 
         return x, y
 

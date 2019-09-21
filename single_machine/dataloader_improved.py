@@ -10,7 +10,7 @@ from imblearn.over_sampling import RandomOverSampler
 from collections import Counter
 
 outcome_index =0 # 0 is death label, 1 is HC 
-is_mimic = 0
+is_mimic = 1
 
 def random_oversampling(feature_data, feature_label, random_state):
     X_resampled, y_resampled = \
@@ -91,7 +91,7 @@ class TestDataset(Dataset):
     """ Test dataset."""
 
     # Initialize your data, download, etc.
-    def __init__(self, filename="data/EICU_DB", is_train=True, transform=None):
+    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None):
         if is_train:
             filename = filename + "_train.csv"
         else:
