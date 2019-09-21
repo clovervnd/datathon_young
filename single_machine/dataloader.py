@@ -8,8 +8,6 @@ from torch.utils.data import DataLoader, Dataset
 
 
 def read_db(filename="data/MIMIC_DB_train.csv"):
-    pd.set_option('display.max_columns', None)
-    np.set_printoptions(threshold=sys.maxsize)
     data = pd.read_csv(filename, dtype=np.float64)
     # print (data)
     comorb_fill = {'c_ESRD': 0,
