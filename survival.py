@@ -10,32 +10,11 @@ from torch.autograd import Variable
 import dataloader as dl
 # Training settings
 batch_size = 64
-n_class=3
+n_class=2
 
 
 train_loader = dl.get_dataloader(is_train=True, batch_size=batch_size)
 test_loader = dl.get_dataloader(is_train=True, batch_size=batch_size)
-
-
-if 0:
-# MNIST Dataset
-    train_dataset = datasets.MNIST(root='./data/',
-                                   train=True,
-                                   transform=transforms.ToTensor(),
-                                   download=True)
-
-    test_dataset = datasets.MNIST(root='./data/',
-                                  train=False,
-                                  transform=transforms.ToTensor())
-
-# Data Loader (Input Pipeline)
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                               batch_size=batch_size,
-                                               shuffle=True)
-
-    test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                              batch_size=batch_size,
-                                              shuffle=False)
 
 
 class Net(nn.Module):

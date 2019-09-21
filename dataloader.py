@@ -7,7 +7,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
 
 
-def read_db(filename="data/demo_DB_train.csv"):
+def read_db(filename="data/MIMIC_DB_train.csv"):
     data = pd.read_csv(filename, dtype=np.float64)
     # print (data)
     mean_values = data.mean()
@@ -31,7 +31,7 @@ class TestDataset(Dataset):
     """ Test dataset."""
 
     # Initialize your data, download, etc.
-    def __init__(self, filename="data/demo_DB", is_train=True, transform=None):
+    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None):
         if is_train:
             filename = filename + "_train.csv"
         else:
@@ -68,8 +68,7 @@ def transform(x):
 
 def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
     all_data = read_db()
-    # dataset = TestDataset(transform=transform)
-    dataset = TestDataset()
+    dataset = TestDataset(is_train = is_train, transform = transform)
     dataloader = DataLoader(dataset=dataset,
                               batch_size=batch_size,
                               shuffle=shuffle,
