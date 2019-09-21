@@ -8,21 +8,42 @@ from torch.utils.data import DataLoader, Dataset
 
 
 def read_db(filename="data/MIMIC_DB_train.csv"):
+    pd.set_option('display.max_columns', None)
+    np.set_printoptions(threshold=sys.maxsize)
     data = pd.read_csv(filename, dtype=np.float64)
     # print (data)
-    mean_values = data.mean()
-    for i, value in enumerate(mean_values):
-        float_list = [3,4,5,6,7,8,9]
-        if i not in float_list:
-            mean_values[i] = round(value)
-    # print (mean_values)
+    comorb_fill = {'c_ESRD': 0,
+            'c_HF': 0,
+            'c_HEM': 0,
+            'c_COPD': 0,
+            'c_METS': 0,
+            'c_LD': 0,
+            'c_CKD': 0,
+            'c_CV': 0,
+            'c_DM': 0,
+            'c_AF': 0,
+            'c_IHD': 0,
+            'c_HTN': 0,
+            'is_vent': 4}
+
+    data = data.fillna(value = comorb_fill)
     print (data.describe())
+    mean_values = data.mean()
+    # print (mean_values)
+
+
+
+    data = pd.get_dummies(data, columns=["sex", "c_CV","c_IHD", "c_HF", "c_HTN", "c_DM", "c_COPD", "c_CKD", "c_ESRD", "c_HEM", "c_METS", "c_AF", "c_LD", "is_vent" ]) 
+
     values = mean_values.to_dict()
     # print (values)
-    
     data = data.fillna(value=values)
     # print (data)
     data_array = data.values
+
+    # print (data.describe())
+    mean_values = data.mean()
+    print (mean_values)
 
     return data_array
 
@@ -38,15 +59,15 @@ class TestDataset(Dataset):
             filename = filename + "_test.csv"
         xy = read_db(filename)
         self.len = xy.shape[0]
-        self.x_data = torch.from_numpy(xy[:, 1:18]).float()
-        self.y_data = torch.from_numpy(xy[:, 18])
+        self.x_data = torch.from_numpy(xy[:, 3:5] + xy[:, 6:]).float()
+        self.y_data = torch.from_numpy(xy[:, 5])
         self.y_data[self.y_data > 1] =  1
         self.transform = transform
 
     def __getitem__(self, index):
         x = self.x_data[index]
         y = self.y_data[index]
-        
+
         if self.transform :
             x = self.transform(x)
         return x, y
@@ -57,8 +78,8 @@ class TestDataset(Dataset):
 
 def transform(x):
     # Normlaize data
-    means_numpy = np.asarray([0.5, 61.9, 14.3, 4.2, 8.9, 1.0, 0.19, 69.3, 167.2, 0.5, 0.5, 0.5, 0.5, 3, 56.5, 49.5, 45.5])
-    stds_numpy = np.asarray([0.5, 9.39, 1.49, 0.41, 0.38, 0.5, 0.49, 10.4, 7.7, 0.5, 0.5, 0.5, 0.5, 3, 7.7, 6.65, 50.3])
+    means_numpy = np.asarray([])
+    stds_numpy = np.asarray([])
     # print (x)
     means = torch.from_numpy(means_numpy).float()
     stds = torch.from_numpy(stds_numpy).float()
