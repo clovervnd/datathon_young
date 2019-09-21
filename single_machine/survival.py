@@ -23,39 +23,57 @@ class Net(nn.Module):
 
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(109, 200)
-        self.fc2 = nn.Linear(200, 100)
-        self.fc3 = nn.Linear(100, 10)
-        # self.fc2 = nn.Linear(200, 400)
-        # self.fc3 = nn.Linear(400, 300)
-        # self.fc4 = nn.Linear(200, 100)
-        # self.fc5 = nn.Linear(100, 10)
+        self.fc1 = nn.Linear(68, 200)
+        self.fc2 = nn.Linear(200, 200)
+        self.fc3 = nn.Linear(200, 200)
+        self.fc4 = nn.Linear(200, 200)
+        self.fc5 = nn.Linear(200, 200)
+        self.fc6 = nn.Linear(200, 100)
+        self.fc7 = nn.Linear(100, 10)
         self.fc_final = nn.Linear(10, n_class)
 
     def forward(self, x):
         in_size = x.size(0)
         x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
         x = F.relu(self.fc2(x))
+        x = F.dropout(x, training=self.training)
         x = F.relu(self.fc3(x))
-        # x = F.relu(self.fc4(x))
-        # x = F.relu(self.fc5(x))
+        x = F.dropout(x, training=self.training)
+        x = F.relu(self.fc4(x))
+        x = F.dropout(x, training=self.training)
+        x = F.relu(self.fc5(x))
+        x = F.dropout(x, training=self.training)
+        x = F.relu(self.fc6(x))
+        x = F.dropout(x, training=self.training)
+        x = F.relu(self.fc7(x))
+        x = F.dropout(x, training=self.training)
         x = self.fc_final(x)
         return F.log_softmax(x)
 
     def softmax(self, x):
         in_size = x.size(0)
         x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
         x = F.relu(self.fc2(x))
+        x = F.dropout(x, training=self.training)
         x = F.relu(self.fc3(x))
-        # x = F.relu(self.fc4(x))
-        # x = F.relu(self.fc5(x))
+        x = F.dropout(x, training=self.training)
+        x = F.relu(self.fc4(x))
+        x = F.dropout(x, training=self.training)
+        x = F.relu(self.fc5(x))
+        x = F.dropout(x, training=self.training)
+        x = F.relu(self.fc6(x))
+        x = F.dropout(x, training=self.training)
+        x = F.relu(self.fc7(x))
+        x = F.dropout(x, training=self.training)
         x = self.fc_final(x)
         return F.softmax(x)
 
-
 model = Net()
 
-optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+learning_rate = 1e-4
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 
 def train(epoch):
