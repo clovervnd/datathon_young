@@ -1,29 +1,34 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as f
-import torch.optim as optim
-from torchvision import datasets, transforms
-import logging
-import argparse
-import sys
+from __future__ import print_function
 
-import syft as sy
-from syft.workers.websocket_client import WebsocketClientWorker
-from syft.workers.virtual import VirtualWorker
-from syft.frameworks.torch.federated import utils
+import argparse
+import logging
+import sys
+from collections import Counter
+
 import numpy as np
 import pandas as pd
+import sklearn.metrics as sk
 
-import sys
+import syft as sy
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from imblearn.over_sampling import RandomOverSampler
+from syft.frameworks.torch.federated import utils
+from syft.workers.virtual import VirtualWorker
+from syft.workers.websocket_client import WebsocketClientWorker
+# from torchvision import datasets, transforms
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
+from torchvision import datasets, transforms
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.DEBUG)
 
 LOG_INTERVAL = 25
-DATATHON = 0
+DATATHON = 1
+n_class =2 
 
 ###########################################
 ##############  Reference #################
@@ -67,7 +72,7 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
 
 
 
-    data = pd.get_dummies(data, columns=["sex", "c_CV","c_IHD", "c_HF", "c_HTN", "c_DM", "c_COPD", "c_CKD", "c_ESRD", "c_HEM", "c_METS", "c_AF", "c_LD", "is_vent" ]) 
+    data = pd.get_dummies(data, columns=["sex", "c_CV","c_IHD", "c_HF", "c_HTN", "c_DM", "c_COPD", "c_CKD", "c_ESRD", "c_HEM", "c_METS", "c_AF", "c_LD", "is_vent" ])
 
     values = mean_values.to_dict()
     # print (values)
@@ -100,11 +105,65 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
         print (data_array[:, 4].shape)
         print (Counter(data_array[:, 4]))
         data_array, temp = random_oversampling(data_array, data_array[:, 4].astype(np.int) , np.random.randint(100))
-        
+
         print (Counter(temp))
         print (data_array.shape)
 
     return data_array
+
+def transform(x):
+    # Normlaize data
+    train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
+    train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
+    means = np.append(train_mean, np.asarray([0.5 for i in range(68)]))
+    stds = np.append(train_std, np.asarray([0.5 for i in range(68)]))
+
+    transform_x = (x - means) /stds
+
+    return transform_x
+
+def transform_tensor(x):
+    # Normlaize data
+    train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
+    train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
+    means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(68)]))
+    stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(68)]))
+    # print (x)
+    means = torch.from_numpy(means_numpy).float()
+    stds = torch.from_numpy(stds_numpy).float()
+
+    transform_x = (x - means) /stds
+
+    return transform_x
+
+def preprocessed_data(dataset_name, is_train):
+    if is_train:
+        filename = "data/" + dataset_name + "_train.csv"
+    else:
+        filename = "data/" + dataset_name + "_test.csv"
+    xy = read_db(filename, is_train)
+    segment1 =xy[:,3:4]
+    segment2 =xy[:, 5:]
+    x_data = np.append(segment1, segment2,axis=1)
+    y_data = xy[:, 4]
+
+    x_data = transform(x_data)
+
+    return torch.tensor(x_data).float(), torch.tensor(y_data).long()
+
+print (preprocessed_data("MIMIC_DB", True))
+
+
+def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
+    # all_data = read_db()
+    dataset = TestDataset(is_train = is_train, transform = transform)
+    # dataset = TestDataset(is_train = is_train)
+    dataloader = DataLoader(dataset=dataset,
+                              batch_size=batch_size,
+                              shuffle=shuffle,
+                              num_workers=num_workers)
+
+    return dataloader
 
 
 class TestDataset(Dataset):
@@ -127,7 +186,7 @@ class TestDataset(Dataset):
         # print (temp_x_data.shape)
         self.x_data = torch.from_numpy(temp_x_data).float()
         self.y_data = torch.from_numpy(xy[:, 4])
-        self.transform = transform
+        self.transform = transform_tensor
 
     def __getitem__(self, index):
         x = self.x_data[index]
@@ -141,34 +200,6 @@ class TestDataset(Dataset):
     def __len__(self):
         return self.len
 
-
-def transform(x):
-    # Normlaize data
-    train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
-    train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
-    means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(68)]))
-    stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(68)]))
-    # print (x)
-    means = torch.from_numpy(means_numpy).float()
-    stds = torch.from_numpy(stds_numpy).float()
-
-    transform_x = (x - means) /stds
-
-    return transform_x
-
-def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
-    # all_data = read_db()
-    dataset = TestDataset(is_train = is_train, transform = transform)
-    # dataset = TestDataset(is_train = is_train)
-    dataloader = DataLoader(dataset=dataset,
-                              batch_size=batch_size,
-                              shuffle=shuffle,
-                              num_workers=num_workers)
-
-    return dataloader
-
-
-
 ###########################################
 ###########################################
 ###########################################
@@ -176,6 +207,7 @@ def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
+
         if DATATHON :
             super(Net, self).__init__()
             self.fc1 = nn.Linear(109, 200)
@@ -211,6 +243,7 @@ class Net(nn.Module):
             x = F.relu(self.fc7(x))
             x = F.dropout(x, training=self.training)
             x = self.fc_final(x)
+
             return F.log_softmax(x)
         else:
             x = f.relu(self.conv1(x))
@@ -220,6 +253,7 @@ class Net(nn.Module):
             x = x.view(-1, 4 * 4 * 50)
             x = f.relu(self.fc1(x))
             x = self.fc2(x)
+
             return f.log_softmax(x, dim=1)
 
     def softmax(self, x):
@@ -239,6 +273,7 @@ class Net(nn.Module):
         x = F.relu(self.fc7(x))
         x = F.dropout(x, training=self.training)
         x = self.fc_final(x)
+
         return F.softmax(x)
 
 
@@ -270,9 +305,10 @@ def train_on_batches(worker, batches, model_in, device, lr):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        loss = f.nll_loss(output, target)
+        loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
+
         if batch_idx % LOG_INTERVAL == 0:
             loss = loss.get()  # <-- NEW: get the loss back
             loss_local = True
@@ -289,6 +325,7 @@ def train_on_batches(worker, batches, model_in, device, lr):
     if not loss_local:
         loss = loss.get()  # <-- NEW: get the loss back
     model.get()  # <-- NEW: get the model back
+
     return model, loss
 
 
@@ -306,16 +343,19 @@ def get_next_batches(fdataloader: sy.FederatedDataLoader, nr_batches: int):
 
     """
     batches = {}
+
     for worker_id in fdataloader.workers:
         worker = fdataloader.federated_dataset.datasets[worker_id].location
         batches[worker] = []
     try:
         for i in range(nr_batches):
             next_batches = next(fdataloader)
+
             for worker in next_batches:
                 batches[worker].append(next_batches[worker])
     except StopIteration:
         pass
+
     return batches
 
 
@@ -336,8 +376,10 @@ def train(model, device, federated_train_loader, lr, federate_after_n_batches):
             "Starting training round, batches [{}, {}]".format(counter, counter + nr_batches)
         )
         data_for_all_workers = True
+
         for worker in batches:
             curr_batches = batches[worker]
+
             if curr_batches:
                 models[worker], loss_values[worker] = train_on_batches(
                     worker, curr_batches, model, device, lr
@@ -345,12 +387,15 @@ def train(model, device, federated_train_loader, lr, federate_after_n_batches):
             else:
                 data_for_all_workers = False
         counter += nr_batches
+
         if not data_for_all_workers:
             logger.debug("At least one worker ran out of data, stopping.")
+
             break
 
         model = utils.federated_avg(models)
         batches = get_next_batches(federated_train_loader, nr_batches)
+
     return model
 
 
@@ -358,13 +403,27 @@ def test(model, device, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
+    total_softmax = np.asarray([])
+    total_target = np.asarray([])
+
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += f.nll_loss(output, target, reduction="sum").item()  # sum up batch loss
+            test_loss += F.nll_loss(output, target, reduction="sum").item()  # sum up batch loss
             pred = output.argmax(1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
+
+            softmax = model.softmax(data)
+            total_softmax = np.append (total_softmax, softmax.data.numpy())
+            total_target = np.append (total_target, target.numpy())
+
+    total_softmax = np.reshape(total_softmax,(-1,2))
+    print (total_softmax)
+    print (total_target)
+
+    auroc = sk.roc_auc_score(total_target, total_softmax[:,1])
+    print ("AUROC: ", auroc)
 
     test_loss /= len(test_loader.dataset)
 
@@ -407,6 +466,7 @@ def define_and_get_arguments(args=sys.argv[1:]):
     )
 
     args = parser.parse_args(args=args)
+
     return args
 
 
@@ -418,14 +478,12 @@ def main():
     if args.use_virtual:
         alice = VirtualWorker(id="alice", hook=hook, verbose=args.verbose)
         bob = VirtualWorker(id="bob", hook=hook, verbose=args.verbose)
-        charlie = VirtualWorker(id="charlie", hook=hook, verbose=args.verbose)
     else:
         kwargs_websocket = {"host": "localhost", "hook": hook, "verbose": args.verbose}
         alice = WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket)
         bob = WebsocketClientWorker(id="bob", port=8778, **kwargs_websocket)
-        charlie = WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
 
-    workers = [alice, bob, charlie]
+    workers = [alice, bob]
 
     use_cuda = args.cuda and torch.cuda.is_available()
 
@@ -436,16 +494,16 @@ def main():
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
 
     if DATATHON:
-        federated_train_loader = sy.FederatedDataLoader(
-                TestDataset(is_train=is_train, transform=transform
-                    ).federate(tuple(workers)),
-            batch_size=args.batch_size,
-            shuffle=True,
-            iter_per_worker=True,
-            **kwargs,
-                )
+        alice_data, alice_target = preprocessed_data("MIMIC_DB", True)
+        bob_data, bob_target = preprocessed_data("MIMIC_DB", True)
+        alice_train_dataset = sy.BaseDataset(alice_data, alice_target).send(alice)
+        bob_train_dataset = sy.BaseDataset(bob_data, bob_target).send(bob)
 
-        test_loader = get_dataloader(is_train=False, batch_size=batch_size)
+        federated_train_dataset = sy.FederatedDataset([alice_train_dataset, bob_train_dataset])
+
+        federated_train_loader = sy.FederatedDataLoader(federated_train_dataset, shuffle = True, batch_size=args.batch_size, iter_per_worker=True, **kwargs,)
+
+        test_loader = get_dataloader(is_train=False, batch_size=args.batch_size)
 
     else:
         federated_train_loader = sy.FederatedDataLoader(
