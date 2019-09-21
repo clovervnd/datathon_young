@@ -7,7 +7,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
 
 
-def read_db(filename="data/MIMIC_DB_train.csv"):
+def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     data = pd.read_csv(filename, dtype=np.float64)
     # print (data)
     comorb_fill = {'c_ESRD': 0,
@@ -36,13 +36,28 @@ def read_db(filename="data/MIMIC_DB_train.csv"):
     values = mean_values.to_dict()
     # print (values)
     data = data.fillna(value=values)
+
+    if is_train:
+        mean_values = data.mean()
+        np_mean = np.asarray(mean_values)
+        print (np_mean.shape)
+        np_mean = np.append(np_mean[3:4], np_mean[5:-27], axis=0)
+        print (np_mean.shape)
+        np.savetxt("train_mean.txt", np_mean, delimiter = ',', fmt = '%f')
+
+        std_values = data.std()
+        np_std = np.asarray(std_values)
+        print (np_std.shape)
+        np_std = np.append(np_std[3:4], np_std[5:-27], axis=0)
+        print (np_std.shape)
+        np.savetxt("train_std.txt", np_std, delimiter = ',', fmt = '%f')
     # print (data)
     data_array = data.values
 
     # print (data.describe())
     mean_values = data.mean()
     std_values = data.std()
-    print (mean_values)
+    # print (mean_values)
     # print (std_values)
 
     return data_array
@@ -57,7 +72,7 @@ class TestDataset(Dataset):
             filename = filename + "_train.csv"
         else:
             filename = filename + "_test.csv"
-        xy = read_db(filename)
+        xy = read_db(filename, is_train)
         self.len = xy.shape[0]
 
         segment1 =xy[:,3:4] 
@@ -84,8 +99,10 @@ class TestDataset(Dataset):
 
 def transform(x):
     # Normlaize data
-    means_numpy = np.asarray([])
-    stds_numpy = np.asarray([])
+    train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
+    print (train_mean)
+    means_numpy = np.asarray([0.5 for i in range(27)])
+    stds_numpy = np.asarray([0.5 for i in range(27)])
     # print (x)
     means = torch.from_numpy(means_numpy).float()
     stds = torch.from_numpy(stds_numpy).float()
@@ -116,7 +133,6 @@ if __name__ == '__main__':
 
     for i, (data,target) in enumerate(train_loader):
         if i ==1:
-            print (i, data,target)
             print (i)
             print ("data: ", data)
             print ("target: ", target)
