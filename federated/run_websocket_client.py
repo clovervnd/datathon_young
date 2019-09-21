@@ -18,12 +18,14 @@ import sys
 import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
+from collections import Counter
+from imblearn.over_sampling import RandomOverSampler
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.DEBUG)
 
 LOG_INTERVAL = 25
-DATATHON = 0
+DATATHON = 1
 
 ###########################################
 ##############  Reference #################
@@ -437,7 +439,7 @@ def main():
 
     if DATATHON:
         federated_train_loader = sy.FederatedDataLoader(
-                TestDataset(is_train=is_train, transform=transform
+                TestDataset(is_train=True, transform=transform
                     ).federate(tuple(workers)),
             batch_size=args.batch_size,
             shuffle=True,
