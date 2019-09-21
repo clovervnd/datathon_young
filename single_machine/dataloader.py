@@ -41,7 +41,9 @@ def read_db(filename="data/MIMIC_DB_train.csv"):
 
     # print (data.describe())
     mean_values = data.mean()
-    print (mean_values)
+    std_values = data.std()
+    # print (mean_values)
+    print (std_values)
 
     return data_array
 
@@ -76,8 +78,142 @@ class TestDataset(Dataset):
 
 def transform(x):
     # Normlaize data
-    means_numpy = np.asarray([])
-    stds_numpy = np.asarray([])
+    means_numpy = np.asarray([57.659519
+   ,             22.437066
+   ,             24.726187
+   ,             2.316912
+   ,             2.594240
+   ,             1.171477
+   ,             1.400061
+   ,             32.893292
+   ,             38.181856
+   ,             11.181713
+   ,             12.794087
+   ,             1.787762
+   ,             3.019037
+   ,           215.048044
+   ,           251.647426
+   ,             3.829635
+   ,             4.684962
+   ,             14.396185
+   ,             16.178659
+   ,           136.832387
+   ,           140.202057
+   ,             21.579646
+   ,             25.661354
+   ,             10.877764
+   ,             13.804529
+   ,           1478.901961
+   ,           104.141938
+   ,             93.356222
+   ,             46.325566
+   ,             78.334767
+   ,             26.982716
+   ,             12.200633
+   ,             36.130542
+   ,             37.429889
+   ,             92.021236
+   ,           109.439431
+   ,           273.858638
+   ,             54.364061
+   ,             7.314209
+   ,           242.081106
+   ,             48.110817
+    ,   0.5
+    ,   0.5
+    ,   0.5
+    ,   0.5
+    ,   0.5
+    ,   0.5
+    ,   0.5
+    ,   0.5
+    ,   0.5
+    ,   0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5
+    ,    0.5])
+    stds_numpy = np.asarray([     14.835527
+,            3.992239
+,            3.595994
+,            2.479988
+,            2.732242
+,            1.044750
+,            1.301933
+,            8.399403
+,            6.847880
+,            2.809906
+,            2.339725
+,            0.781326
+,            1.617444
+,            97.454224
+,          104.897316
+,            0.577061
+,            0.826919
+,            3.181122
+,            6.396289
+,            4.252793
+,            3.996271
+,            15.572532
+,            17.864576
+,            5.628392
+,            7.708330
+,            47.682721
+,            11.129786
+,            9.251199
+,            6.331849
+,            5.936066
+,            3.351123
+,            1.930847
+,            0.403784
+,            0.429330
+,            3.510093
+,            19.100130
+,          5772.594907
+,            13.466272
+,            0.084561
+,          112.088525
+,            9.838691
+,        0.5
+,        0.5
+,        0.5
+,        0.5
+,        0.5
+,        0.5
+,        0.5
+,        0.5
+,        0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5
+,    0.5])
     # print (x)
     means = torch.from_numpy(means_numpy).float()
     stds = torch.from_numpy(stds_numpy).float()
@@ -97,12 +233,13 @@ def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
 
 if __name__ == '__main__':
     pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_rows', None)
     np.set_printoptions(threshold=sys.maxsize)
     read_db();
 
 
 
-    # train_loader = get_dataloader(is_train=True)
+    train_loader = get_dataloader(is_train=True)
 
-    # for i, data in enumerate(train_loader):
-        # print (i, data)
+    for i, data in enumerate(train_loader):
+        print (i, data)
