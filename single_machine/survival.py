@@ -14,7 +14,7 @@ n_class=2
 
 
 train_loader = dl.get_dataloader(is_train=True, batch_size=batch_size)
-test_loader = dl.get_dataloader(is_train=True, batch_size=batch_size)
+test_loader = dl.get_dataloader(is_train=False, batch_size=batch_size)
 
 
 class Net(nn.Module):

@@ -16,7 +16,7 @@ def read_db(filename="data/MIMIC_DB_train.csv"):
         if i not in float_list:
             mean_values[i] = round(value)
     # print (mean_values)
-    # print (data.describe())
+    print (data.describe())
     values = mean_values.to_dict()
     # print (values)
     
@@ -79,7 +79,11 @@ def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
 if __name__ == '__main__':
     pd.set_option('display.max_columns', None)
     np.set_printoptions(threshold=sys.maxsize)
-    train_loader = get_dataloader(is_train=True)
+    read_db();
 
-    for i, data in enumerate(train_loader):
-        print (i, data)
+
+
+    # train_loader = get_dataloader(is_train=True)
+
+    # for i, data in enumerate(train_loader):
+        # print (i, data)
