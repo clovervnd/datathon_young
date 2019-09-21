@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader, Dataset
 from imblearn.over_sampling import RandomOverSampler
 from collections import Counter
 
+outcome_index =0 # 0 is death label, 1 is HC 
+
 def random_oversampling(feature_data, feature_label, random_state):
     X_resampled, y_resampled = \
         RandomOverSampler(random_state = random_state).fit_resample(feature_data, feature_label)
@@ -24,8 +26,7 @@ def smote(feature_data, feature_label, random_state):
 def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     data = pd.read_csv(filename, dtype=np.float64)
     # print (data)
-    comorb_fill = {'c_ESRD': 0,
-            'c_HF': 0,
+    comorb_fill = {'c_HF': 0,
             'c_HEM': 0,
             'c_COPD': 0,
             'c_METS': 0,
@@ -37,33 +38,32 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
             'c_IHD': 0,
             'c_HTN': 0,
             'is_vent': 4,
-            'death_label': 0}
+            'death_label': 0,
+            'HC_label':0}
 
     data = data.fillna(value = comorb_fill)
     # print (data.describe())
     mean_values = data.mean()
-    # print (mean_values)
 
 
 
-    data = pd.get_dummies(data, columns=["sex", "c_CV","c_IHD", "c_HF", "c_HTN", "c_DM", "c_COPD", "c_CKD", "c_ESRD", "c_HEM", "c_METS", "c_AF", "c_LD", "is_vent" ]) 
+    data = pd.get_dummies(data, columns=["sex", "c_CV","c_IHD", "c_HF", "c_HTN", "c_DM", "c_COPD", "c_CKD", "c_HEM", "c_METS", "c_AF", "c_LD", "is_vent" ]) 
 
     values = mean_values.to_dict()
     # print (values)
     data = data.fillna(value=values)
+    # print (data.mean())
 
     if is_train:
         mean_values = data.mean()
         np_mean = np.asarray(mean_values)
-        # print (np_mean.shape)
-        np_mean = np.append(np_mean[3:4], np_mean[5:45], axis=0)
+        np_mean = np_mean[5:47]
         # print (np_mean.shape)
         np.savetxt("train_mean.txt", np_mean, delimiter = ',', fmt = '%f')
 
         std_values = data.std()
         np_std = np.asarray(std_values)
-        # print (np_std.shape)
-        np_std = np.append(np_std[3:4], np_std[5:45], axis=0)
+        np_std = np_std[5:47]
         # print (np_std.shape)
         np.savetxt("train_std.txt", np_std, delimiter = ',', fmt = '%f')
     # print (data)
@@ -76,12 +76,12 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     # print (std_values)
 
     if is_train:
-        print (data_array[:, 4].shape)
-        print (Counter(data_array[:, 4]))
-        data_array, temp = random_oversampling(data_array, data_array[:, 4].astype(np.int) , np.random.randint(100))
+        # print (data_array[:, outcome_index].shape)
+        print (Counter(data_array[:, outcome_index]))
+        data_array, temp = random_oversampling(data_array, data_array[:, outcome_index].astype(np.int) , np.random.randint(100))
         
         print (Counter(temp))
-        print (data_array.shape)
+        # print (data_array.shape)
 
     return data_array
 
@@ -98,14 +98,14 @@ class TestDataset(Dataset):
         xy = read_db(filename, is_train)
         self.len = xy.shape[0]
 
-        segment1 =xy[:,3:4] 
-        segment2 =xy[:, 5:]
+        # segment1 =xy[:,3:4] 
+        # segment2 =xy[:, 5:]
         # print (segment1.shape)
         # print (segment2.shape)
-        temp_x_data = np.append(segment1, segment2,axis=1)
+        # temp_x_data = np.append(segment1, segment2,axis=1)
         # print (temp_x_data.shape)
-        self.x_data = torch.from_numpy(temp_x_data).float()
-        self.y_data = torch.from_numpy(xy[:, 4])
+        self.x_data = torch.from_numpy(xy[:,5:]).float()
+        self.y_data = torch.from_numpy(xy[:, outcome_index])
         self.transform = transform
 
     def __getitem__(self, index):
@@ -125,8 +125,8 @@ def transform(x):
     # Normlaize data
     train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
     train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
-    means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(68)]))
-    stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(68)]))
+    means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
+    stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(69)]))
     # print (x)
     means = torch.from_numpy(means_numpy).float()
     stds = torch.from_numpy(stds_numpy).float()
