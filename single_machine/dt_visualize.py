@@ -1,7 +1,9 @@
 
+import numpy as np
 import pandas as pd
 from sklearn.metrics import confusion_matrix,\
-                            roc_curve            
+                            roc_curve, \
+                            auc
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
@@ -33,7 +35,7 @@ def dummy_labelize_swk(data, n_classes):
     
     return label
 
-def save_roc_curve(y_test = total_target, y_pred_proba = total_softmax, roc_figure_save = True, n_classes = 2, save_path = './'):
+def save_roc_curve(y_test, y_pred_proba, roc_figure_save = True, n_classes = 2, save_path = './'):
     # https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
     # function edited by Sang Wook Kim, Korea University
     # test
@@ -71,16 +73,16 @@ def save_roc_curve(y_test = total_target, y_pred_proba = total_softmax, roc_figu
 
     return
 
-def save_confusion_matrix(y_true = total_target, y_pred_proba = total_softmax, save_path = './'):
+def save_confusion_matrix(y_true, y_pred_proba, save_path = './'):
 
     y_pred_proba_tr = np.amax(y_pred_proba, axis=1)
-    confusion = confusion_matrix(y_true, y_pred_proba_tr)
+    confusion = confusion_matrix(y_true, y_pred_proba_tr.astype(np.int))
 
     df_cm = pd.DataFrame(confusion, index = ['negative label', 'positive label'],
                     columns = ['negative prediction', 'positive prediction'])
     plt.figure(figsize = (10,7))
     sns.heatmap(df_cm, annot=True)
-    plt.savefig(os.path.join(save_path, 'confusion_matrix.jpg'))
+    plt.savefig(os.path.join(save_path, 'confusion_matrix.png'))
     # plt.show()
     plt.close()
 
