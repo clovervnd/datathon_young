@@ -6,7 +6,20 @@ import pandas as pd
 import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
+from imblearn.over_sampling import RandomOverSampler
+from collections import Counter
 
+def random_oversampling(feature_data, feature_label, random_state):
+    X_resampled, y_resampled = \
+        RandomOverSampler(random_state = random_state).fit_resample(feature_data, feature_label)
+
+    return X_resampled, y_resampled
+
+def smote(feature_data, feature_label, random_state):
+    X_resampled, y_resampled = \
+        SMOTE(random_state = random_state).fit_resample(feature_data, feature_label)
+
+    return X_resampled, y_resampled
 
 def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     data = pd.read_csv(filename, dtype=np.float64)
@@ -61,6 +74,14 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     std_values = data.std()
     # print (mean_values)
     # print (std_values)
+
+    if is_train:
+        print (data_array[:, 4].shape)
+        print (Counter(data_array[:, 4]))
+        data_array, temp = random_oversampling(data_array, data_array[:, 4].astype(np.int) , np.random.randint(100))
+        
+        print (Counter(temp))
+        print (data_array.shape)
 
     return data_array
 

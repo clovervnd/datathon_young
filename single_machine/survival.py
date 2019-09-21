@@ -6,8 +6,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 # from torchvision import datasets, transforms
 from torch.autograd import Variable
+import sklearn.metrics as sk
 
 import dataloader as dl
+import numpy as np
 # Training settings
 batch_size = 64
 n_class=2
@@ -40,6 +42,16 @@ class Net(nn.Module):
         x = self.fc_final(x)
         return F.log_softmax(x)
 
+    def softmax(self, x):
+        in_size = x.size(0)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        # x = F.relu(self.fc4(x))
+        # x = F.relu(self.fc5(x))
+        x = self.fc_final(x)
+        return F.softmax(x)
+
 
 model = Net()
 
@@ -66,6 +78,8 @@ def test():
     model.eval()
     test_loss = 0
     correct = 0
+    total_softmax = np.asarray([])
+    total_target = np.asarray([])
     for data, target in test_loader:
         data, target = Variable(data, volatile=True), Variable(target.long())
         output = model(data)
@@ -75,11 +89,23 @@ def test():
         pred = output.data.max(1, keepdim=True)[1]
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
 
+        softmax = model.softmax(data)
+        total_softmax = np.append (total_softmax, softmax.data.numpy())
+        total_target = np.append (total_target, target.numpy())
+
     test_loss /= len(test_loader.dataset)
+    total_softmax = np.reshape(total_softmax,(-1,2))
+    print (total_softmax)
+    print (total_target)
+
+    auroc = sk.roc_auc_score(total_target, total_softmax[:,1])
+    print ("AUROC: ", auroc)
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
+
+# test()
 
 for epoch in range(1, 10):
     train(epoch)
