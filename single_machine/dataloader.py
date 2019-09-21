@@ -1,7 +1,8 @@
+import sys
+
 import numpy as np
 import pandas as pd
 
-import sys
 import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
@@ -92,6 +93,7 @@ class TestDataset(Dataset):
 
         if self.transform :
             x = self.transform(x)
+
         return x, y
 
     def __len__(self):
@@ -109,6 +111,7 @@ def transform(x):
     stds = torch.from_numpy(stds_numpy).float()
 
     transform_x = (x - means) /stds
+
     return transform_x
 
 def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
@@ -119,6 +122,7 @@ def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
                               batch_size=batch_size,
                               shuffle=shuffle,
                               num_workers=num_workers)
+
     return dataloader
 
 

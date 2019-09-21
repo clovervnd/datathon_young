@@ -25,10 +25,12 @@ class Net(nn.Module):
         # self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         # self.mp = nn.MaxPool2d(2)
         self.fc1 = nn.Linear(68, 200)
-        self.fc2 = nn.Linear(200, 400)
-        self.fc3 = nn.Linear(400, 300)
-        self.fc4 = nn.Linear(300, 100)
-        self.fc5 = nn.Linear(100, 10)
+        self.fc2 = nn.Linear(200, 100)
+        self.fc3 = nn.Linear(100, 10)
+        # self.fc2 = nn.Linear(200, 400)
+        # self.fc3 = nn.Linear(400, 300)
+        # self.fc4 = nn.Linear(200, 100)
+        # self.fc5 = nn.Linear(100, 10)
         self.fc_final = nn.Linear(10, n_class)
 
     def forward(self, x):
@@ -36,8 +38,8 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = F.relu(self.fc4(x))
-        x = F.relu(self.fc5(x))
+        # x = F.relu(self.fc4(x))
+        # x = F.relu(self.fc5(x))
         x = self.fc_final(x)
         return F.log_softmax(x)
 
