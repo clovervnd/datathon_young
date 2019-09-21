@@ -24,7 +24,7 @@ class Net(nn.Module):
         # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         # self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         # self.mp = nn.MaxPool2d(2)
-        self.fc1 = nn.Linear(17, 200)
+        self.fc1 = nn.Linear(68, 200)
         self.fc2 = nn.Linear(200, 400)
         self.fc3 = nn.Linear(400, 300)
         self.fc4 = nn.Linear(300, 100)
@@ -51,7 +51,7 @@ def train(epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = Variable(data), Variable(target.long())
-        print (data, target)
+        # print (data, target)
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
@@ -60,7 +60,7 @@ def train(epoch):
         if batch_idx % 10 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.data[0]))
+                100. * batch_idx / len(train_loader), loss.data))
 
 
 def test():
@@ -71,7 +71,7 @@ def test():
         data, target = Variable(data, volatile=True), Variable(target.long())
         output = model(data)
         # sum up batch loss
-        test_loss += F.nll_loss(output, target, size_average=False).data[0]
+        test_loss += F.nll_loss(output, target, size_average=False).data
         # get the index of the max log-probability
         pred = output.data.max(1, keepdim=True)[1]
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()

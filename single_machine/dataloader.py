@@ -22,7 +22,8 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
             'c_AF': 0,
             'c_IHD': 0,
             'c_HTN': 0,
-            'is_vent': 4}
+            'is_vent': 4,
+            'death_label': 0}
 
     data = data.fillna(value = comorb_fill)
     # print (data.describe())
@@ -40,16 +41,16 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     if is_train:
         mean_values = data.mean()
         np_mean = np.asarray(mean_values)
-        print (np_mean.shape)
+        # print (np_mean.shape)
         np_mean = np.append(np_mean[3:4], np_mean[5:-27], axis=0)
-        print (np_mean.shape)
+        # print (np_mean.shape)
         np.savetxt("train_mean.txt", np_mean, delimiter = ',', fmt = '%f')
 
         std_values = data.std()
         np_std = np.asarray(std_values)
-        print (np_std.shape)
+        # print (np_std.shape)
         np_std = np.append(np_std[3:4], np_std[5:-27], axis=0)
-        print (np_std.shape)
+        # print (np_std.shape)
         np.savetxt("train_std.txt", np_std, delimiter = ',', fmt = '%f')
     # print (data)
     data_array = data.values
@@ -77,10 +78,10 @@ class TestDataset(Dataset):
 
         segment1 =xy[:,3:4] 
         segment2 =xy[:, 5:]
-        print (segment1.shape)
-        print (segment2.shape)
+        # print (segment1.shape)
+        # print (segment2.shape)
         temp_x_data = np.append(segment1, segment2,axis=1)
-        print (temp_x_data.shape)
+        # print (temp_x_data.shape)
         self.x_data = torch.from_numpy(temp_x_data).float()
         self.y_data = torch.from_numpy(xy[:, 4])
         self.transform = transform
@@ -100,9 +101,9 @@ class TestDataset(Dataset):
 def transform(x):
     # Normlaize data
     train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
-    print (train_mean)
-    means_numpy = np.asarray([0.5 for i in range(27)])
-    stds_numpy = np.asarray([0.5 for i in range(27)])
+    train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
+    means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(27)]))
+    stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(27)]))
     # print (x)
     means = torch.from_numpy(means_numpy).float()
     stds = torch.from_numpy(stds_numpy).float()
@@ -112,8 +113,8 @@ def transform(x):
 
 def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
     # all_data = read_db()
-    # dataset = TestDataset(is_train = is_train, transform = transform)
-    dataset = TestDataset(is_train = is_train)
+    dataset = TestDataset(is_train = is_train, transform = transform)
+    # dataset = TestDataset(is_train = is_train)
     dataloader = DataLoader(dataset=dataset,
                               batch_size=batch_size,
                               shuffle=shuffle,
