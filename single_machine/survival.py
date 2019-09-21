@@ -10,9 +10,11 @@ import sklearn.metrics as sk
 
 import dataloader_improved as dl
 import numpy as np
+from dt_visualize import save_confusion_matrix, save_roc_curve
 # Training settings
 batch_size = 64
 n_class=2
+is_mimic = 0
 
 
 train_loader = dl.get_dataloader(is_train=True, batch_size=batch_size)
@@ -22,9 +24,13 @@ test_loader = dl.get_dataloader(is_train=False, batch_size=batch_size)
 class Net(nn.Module):
 
     def __init__(self):
+
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(111, 400)
-        self.fc2 = nn.Linear(400, 200)
+        if is_mimic == 1:
+            self.fc1 = nn.Linear(111, 200)
+        else:
+            self.fc1 = nn.Linear(105, 200)
+        self.fc2 = nn.Linear(200, 200)
         self.fc3 = nn.Linear(200, 10)
         self.fc_final = nn.Linear(10, n_class)
 
@@ -37,8 +43,8 @@ class Net(nn.Module):
         x = F.relu(self.fc3(x))
         x = F.dropout(x, training=self.training)
         x = self.fc_final(x)
-        return F.log_softmax(x)
 
+        return F.log_softmax(x)
     def softmax(self, x):
         in_size = x.size(0)
         x = F.relu(self.fc1(x))
@@ -48,7 +54,9 @@ class Net(nn.Module):
         x = F.relu(self.fc3(x))
         x = F.dropout(x, training=self.training)
         x = self.fc_final(x)
+
         return F.softmax(x)
+
 
 model = Net()
 
@@ -95,6 +103,13 @@ def test():
     total_softmax = np.reshape(total_softmax,(-1,2))
     print (total_softmax)
     print (total_target)
+
+    np.savetxt("total_softmax.txt", total_softmax, delimiter = ',', fmt = '%f')
+    np.savetxt("total_target.txt", total_target, delimiter = ',', fmt = '%f')
+    # Draw AUROC curve
+    save_roc_curve(total_target, total_softmax)
+    # Draw Confusion Matrix
+    save_confusion_matrix(total_target, total_softmax)
 
     auroc = sk.roc_auc_score(total_target, total_softmax[:,1])
     print ("AUROC: ", auroc)

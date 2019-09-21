@@ -30,7 +30,7 @@ def dummy_labelize_swk(data, n_classes):
     label = np.zeros((len(data), n_classes), dtype=int)
     
     for k, i in zip(data, label):
-        i[k] = 1
+        i[int(k)] = 1
     
     return label
 
@@ -74,8 +74,9 @@ def save_roc_curve(y_test, y_pred_proba, roc_figure_save = True, n_classes = 2, 
 
 def save_confusion_matrix(y_true, y_pred_proba, save_path = './'):
 
-    y_pred_proba_tr = np.amax(y_pred_proba, axis=1)
+    y_pred_proba_tr = np.argmax(y_pred_proba, axis=1)
     confusion = confusion_matrix(y_true, y_pred_proba_tr.astype(np.int))
+    print (confusion)
 
     df_cm = pd.DataFrame(confusion, index = ['negative label', 'positive label'],
                     columns = ['negative prediction', 'positive prediction'])

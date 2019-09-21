@@ -10,6 +10,7 @@ from imblearn.over_sampling import RandomOverSampler
 from collections import Counter
 
 outcome_index =0 # 0 is death label, 1 is HC 
+is_mimic = 0
 
 def random_oversampling(feature_data, feature_label, random_state):
     X_resampled, y_resampled = \
@@ -90,7 +91,7 @@ class TestDataset(Dataset):
     """ Test dataset."""
 
     # Initialize your data, download, etc.
-    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None):
+    def __init__(self, filename="data/EICU_DB", is_train=True, transform=None):
         if is_train:
             filename = filename + "_train.csv"
         else:
@@ -125,8 +126,12 @@ def transform(x):
     # Normlaize data
     train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
     train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
-    means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
-    stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(69)]))
+    if is_mimic == 1:
+        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
+        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(69)]))
+    else:
+        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(63)]))
+        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(63)]))
     # print (x)
     means = torch.from_numpy(means_numpy).float()
     stds = torch.from_numpy(stds_numpy).float()
