@@ -51,7 +51,7 @@ def smote(feature_data, feature_label, random_state):
 def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     data = pd.read_csv(filename, dtype=np.float64)
     # print (data)
-    comorb_fill = {'c_ESRD': 0,
+    comorb_fill = {
             'c_HF': 0,
             'c_HEM': 0,
             'c_COPD': 0,
@@ -73,7 +73,7 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
 
 
 
-    data = pd.get_dummies(data, columns=["sex", "c_CV","c_IHD", "c_HF", "c_HTN", "c_DM", "c_COPD", "c_CKD", "c_ESRD", "c_HEM", "c_METS", "c_AF", "c_LD", "is_vent" ])
+    data = pd.get_dummies(data, columns=["sex", "c_CV","c_IHD", "c_HF", "c_HTN", "c_DM", "c_COPD", "c_CKD", "c_HEM", "c_METS", "c_AF", "c_LD", "is_vent" ])
 
     values = mean_values.to_dict()
     # print (values)
@@ -108,31 +108,23 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
 
     return data_array
 
-def transform(x, is_mimic):
+def transform(x):
     # Normlaize data
     train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
     train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
-    if is_mimic == 1:
-        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
-        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(69)]))
-    else:
-        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(63)]))
-        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(63)]))
+    means = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
+    stds = np.append(train_std, np.asarray([0.5 for i in range(69)]))
 
     transform_x = (x - means) /stds
 
     return transform_x
 
-def transform_tensor(x, is_mimic):
+def transform_tensor(x):
     # Normlaize data
     train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
     train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
-    if is_mimic == 1:
-        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
-        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(69)]))
-    else:
-        means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(63)]))
-        stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(63)]))
+    means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
+    stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(69)]))
     # print (x)
     means = torch.from_numpy(means_numpy).float()
     stds = torch.from_numpy(stds_numpy).float()
@@ -141,7 +133,7 @@ def transform_tensor(x, is_mimic):
 
     return transform_x
 
-def preprocessed_data(dataset_name, is_train, is_mimic):
+def preprocessed_data(dataset_name, is_train):
     if is_train:
         filename = "data/" + dataset_name + "_train.csv"
     else:
@@ -150,11 +142,9 @@ def preprocessed_data(dataset_name, is_train, is_mimic):
     x_data = xy[:,5:]
     y_data = xy[:, outcome_index]
 
-    x_data = transform(x_data, is_mimic)
+    x_data = transform(x_data)
 
     return torch.tensor(x_data).float(), torch.tensor(y_data).long()
-
-print (preprocessed_data("MIMIC_DB", True, 1))
 
 
 def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
@@ -173,7 +163,7 @@ class TestDataset(Dataset):
     """ Test dataset."""
 
     # Initialize your data, download, etc.
-    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None, is_mimic):
+    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None):
         if is_train:
             filename = filename + "_train.csv"
         else:
@@ -182,16 +172,15 @@ class TestDataset(Dataset):
         self.len = xy.shape[0]
 
         self.x_data = torch.from_numpy(xy[:,5:]).float()
-        self.y_data = torch.from_numpy(xy[:, outcome_index])
+        self.y_data = torch.from_numpy(xy[:, outcome_index]).long()
         self.transform = transform_tensor
-        self.is_mimic = is_mimic 
 
     def __getitem__(self, index):
         x = self.x_data[index]
         y = self.y_data[index]
 
         if self.transform :
-            x = self.transform(x, self.is_mimic)
+            x = self.transform(x)
 
         return x, y
 
@@ -208,13 +197,9 @@ class Net(nn.Module):
 
         if DATATHON :
             super(Net, self).__init__()
-            self.fc1 = nn.Linear(109, 200)
+            self.fc1 = nn.Linear(111, 200)
             self.fc2 = nn.Linear(200, 200)
-            self.fc3 = nn.Linear(200, 200)
-            self.fc4 = nn.Linear(200, 200)
-            self.fc5 = nn.Linear(200, 200)
-            self.fc6 = nn.Linear(200, 100)
-            self.fc7 = nn.Linear(100, 10)
+            self.fc3 = nn.Linear(200, 10)
             self.fc_final = nn.Linear(10, n_class)
         else:
             self.conv1 = nn.Conv2d(1, 20, 5, 1)
@@ -231,14 +216,6 @@ class Net(nn.Module):
             x = F.relu(self.fc2(x))
             x = F.dropout(x, training=self.training)
             x = F.relu(self.fc3(x))
-            x = F.dropout(x, training=self.training)
-            x = F.relu(self.fc4(x))
-            x = F.dropout(x, training=self.training)
-            x = F.relu(self.fc5(x))
-            x = F.dropout(x, training=self.training)
-            x = F.relu(self.fc6(x))
-            x = F.dropout(x, training=self.training)
-            x = F.relu(self.fc7(x))
             x = F.dropout(x, training=self.training)
             x = self.fc_final(x)
 
@@ -261,14 +238,6 @@ class Net(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.dropout(x, training=self.training)
         x = F.relu(self.fc3(x))
-        x = F.dropout(x, training=self.training)
-        x = F.relu(self.fc4(x))
-        x = F.dropout(x, training=self.training)
-        x = F.relu(self.fc5(x))
-        x = F.dropout(x, training=self.training)
-        x = F.relu(self.fc6(x))
-        x = F.dropout(x, training=self.training)
-        x = F.relu(self.fc7(x))
         x = F.dropout(x, training=self.training)
         x = self.fc_final(x)
 
@@ -493,7 +462,7 @@ def main():
 
     if DATATHON:
         alice_data, alice_target = preprocessed_data("MIMIC_DB", True)
-        bob_data, bob_target = preprocessed_data("MIMIC_DB", True)
+        bob_data, bob_target = preprocessed_data("EICU_DB", True)
         alice_train_dataset = sy.BaseDataset(alice_data, alice_target).send(alice)
         bob_train_dataset = sy.BaseDataset(bob_data, bob_target).send(bob)
 

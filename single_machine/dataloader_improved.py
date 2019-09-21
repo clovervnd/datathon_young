@@ -53,7 +53,7 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
     values = mean_values.to_dict()
     # print (values)
     data = data.fillna(value=values)
-    # print (data.mean())
+    print (data.mean())
 
     if is_train:
         mean_values = data.mean()
@@ -91,7 +91,7 @@ class TestDataset(Dataset):
     """ Test dataset."""
 
     # Initialize your data, download, etc.
-    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None):
+    def __init__(self, filename="data/EICU_DB", is_train=True, transform=None):
         if is_train:
             filename = filename + "_train.csv"
         else:
