@@ -14,10 +14,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from dt_visualize import save_confusion_matrix, save_roc_curve
 from imblearn.over_sampling import RandomOverSampler
 from syft.frameworks.torch.federated import utils
 from syft.workers.virtual import VirtualWorker
 from syft.workers.websocket_client import WebsocketClientWorker
+# from torchvision import datasets, transforms
 # from torchvision import datasets, transforms
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, Dataset
@@ -29,7 +31,7 @@ logging.getLogger().setLevel(logging.DEBUG)
 LOG_INTERVAL = 25
 DATATHON = 1
 n_class =2 
-outcome_index = 0
+outcome_index = 1
 
 ###########################################
 ##############  Reference #################
@@ -48,7 +50,7 @@ def smote(feature_data, feature_label, random_state):
 
     return X_resampled, y_resampled
 
-def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
+def read_db(filename="data/MIMIC_DB_train.csv", is_train=True, is_mimic = 1):
     data = pd.read_csv(filename, dtype=np.float64)
     # print (data)
     comorb_fill = {
@@ -83,12 +85,12 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
         mean_values = data.mean()
         np_mean = np.asarray(mean_values)
         np_mean = np_mean[5:47]
-        np.savetxt("train_mean.txt", np_mean, delimiter = ',', fmt = '%f')
+        np.savetxt(str(is_mimic) + "train_mean.txt", np_mean, delimiter = ',', fmt = '%f')
 
         std_values = data.std()
         np_std = np.asarray(std_values)
         np_std = np_std[5:47]
-        np.savetxt("train_std.txt", np_std, delimiter = ',', fmt = '%f')
+        np.savetxt(str(is_mimic) + "train_std.txt", np_std, delimiter = ',', fmt = '%f')
     # print (data)
     data_array = data.values
 
@@ -108,10 +110,10 @@ def read_db(filename="data/MIMIC_DB_train.csv", is_train=True):
 
     return data_array
 
-def transform(x):
+def transform(x, is_mimic):
     # Normlaize data
-    train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
-    train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
+    train_mean = np.loadtxt(fname = str(is_mimic) + 'train_mean.txt', delimiter =',')
+    train_std = np.loadtxt(fname = str(is_mimic) + 'train_std.txt', delimiter =',')
     means = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
     stds = np.append(train_std, np.asarray([0.5 for i in range(69)]))
 
@@ -119,10 +121,10 @@ def transform(x):
 
     return transform_x
 
-def transform_tensor(x):
+def transform_tensor(x, is_mimic):
     # Normlaize data
-    train_mean = np.loadtxt(fname = 'train_mean.txt', delimiter =',')
-    train_std = np.loadtxt(fname = 'train_std.txt', delimiter =',')
+    train_mean = np.loadtxt(fname = str(is_mimic) + 'train_mean.txt', delimiter =',')
+    train_std = np.loadtxt(fname = str(is_mimic) + 'train_std.txt', delimiter =',')
     means_numpy = np.append(train_mean, np.asarray([0.5 for i in range(69)]))
     stds_numpy = np.append(train_std, np.asarray([0.5 for i in range(69)]))
     # print (x)
@@ -133,23 +135,27 @@ def transform_tensor(x):
 
     return transform_x
 
-def preprocessed_data(dataset_name, is_train):
+def preprocessed_data(dataset_name, is_train, is_mimic):
     if is_train:
         filename = "data/" + dataset_name + "_train.csv"
     else:
         filename = "data/" + dataset_name + "_test.csv"
-    xy = read_db(filename, is_train)
+    xy = read_db(filename, is_train, is_mimic)
     x_data = xy[:,5:]
     y_data = xy[:, outcome_index]
 
-    x_data = transform(x_data)
+    x_data = transform(x_data, is_mimic)
 
     return torch.tensor(x_data).float(), torch.tensor(y_data).long()
 
 
-def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
+def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1, is_mimic=1):
     # all_data = read_db()
-    dataset = TestDataset(is_train = is_train, transform = transform)
+    if is_mimic ==1 :
+        dataset = TestDataset(filename = "data/MIMIC_DB", is_train = is_train, transform = transform, is_mimic = is_mimic)
+    else:
+        dataset = TestDataset(filename = "data/EICU_DB", is_train = is_train, transform = transform, is_mimic = is_mimic)
+
     # dataset = TestDataset(is_train = is_train)
     dataloader = DataLoader(dataset=dataset,
                               batch_size=batch_size,
@@ -163,7 +169,7 @@ class TestDataset(Dataset):
     """ Test dataset."""
 
     # Initialize your data, download, etc.
-    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None):
+    def __init__(self, filename="data/MIMIC_DB", is_train=True, transform=None, is_mimic = 1):
         if is_train:
             filename = filename + "_train.csv"
         else:
@@ -174,13 +180,14 @@ class TestDataset(Dataset):
         self.x_data = torch.from_numpy(xy[:,5:]).float()
         self.y_data = torch.from_numpy(xy[:, outcome_index]).long()
         self.transform = transform_tensor
+        self.is_mimic = is_mimic
 
     def __getitem__(self, index):
         x = self.x_data[index]
         y = self.y_data[index]
 
         if self.transform :
-            x = self.transform(x)
+            x = self.transform(x, self.is_mimic)
 
         return x, y
 
@@ -366,7 +373,7 @@ def train(model, device, federated_train_loader, lr, federate_after_n_batches):
     return model
 
 
-def test(model, device, test_loader):
+def test(model, device, test_loader, is_mimic):
     model.eval()
     test_loss = 0
     correct = 0
@@ -388,11 +395,17 @@ def test(model, device, test_loader):
     total_softmax = np.reshape(total_softmax,(-1,2))
     print (total_softmax)
     print (total_target)
+    np.savetxt(str(is_mimic) + "_total_softmax.txt", total_softmax, delimiter = ',', fmt = '%f')
+    np.savetxt(str(is_mimic) + "_total_target.txt", total_target, delimiter = ',', fmt = '%f')
 
     auroc = sk.roc_auc_score(total_target, total_softmax[:,1])
-    print ("AUROC: ", auroc)
+    print ("AUROC: ", auroc, is_mimic)
 
     test_loss /= len(test_loader.dataset)
+    # Draw AUROC curve
+    save_roc_curve(total_target, total_softmax)
+    # Draw Confusion Matrix
+    save_confusion_matrix(total_target, total_softmax)
 
     logger.debug("\n")
     accuracy = 100.0 * correct / len(test_loader.dataset)
@@ -411,7 +424,7 @@ def define_and_get_arguments(args=sys.argv[1:]):
     parser.add_argument(
         "--test_batch_size", type=int, default=1000, help="batch size used for the test data"
     )
-    parser.add_argument("--epochs", type=int, default=2, help="number of epochs to train")
+    parser.add_argument("--epochs", type=int, default=5, help="number of epochs to train")
     parser.add_argument(
         "--federate_after_n_batches",
         type=int,
@@ -461,8 +474,8 @@ def main():
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
 
     if DATATHON:
-        alice_data, alice_target = preprocessed_data("MIMIC_DB", True)
-        bob_data, bob_target = preprocessed_data("EICU_DB", True)
+        bob_data, bob_target = preprocessed_data("EICU_DB", True, 0)
+        alice_data, alice_target = preprocessed_data("MIMIC_DB", True, 1)
         alice_train_dataset = sy.BaseDataset(alice_data, alice_target).send(alice)
         bob_train_dataset = sy.BaseDataset(bob_data, bob_target).send(bob)
 
@@ -470,7 +483,8 @@ def main():
 
         federated_train_loader = sy.FederatedDataLoader(federated_train_dataset, shuffle = True, batch_size=args.batch_size, iter_per_worker=True, **kwargs,)
 
-        test_loader = get_dataloader(is_train=False, batch_size=args.batch_size)
+        test_loader_mimic = get_dataloader(is_train=False, batch_size=args.batch_size, is_mimic = 1 )
+        test_loader_eicu = get_dataloader(is_train=False, batch_size=args.batch_size, is_mimic = 0 )
 
     else:
         federated_train_loader = sy.FederatedDataLoader(
@@ -506,7 +520,8 @@ def main():
     for epoch in range(1, args.epochs + 1):
         logger.info("Starting epoch %s/%s", epoch, args.epochs)
         model = train(model, device, federated_train_loader, args.lr, args.federate_after_n_batches)
-        test(model, device, test_loader)
+        test(model, device, test_loader_mimic, 1)
+        test(model, device, test_loader_eicu, 0)
 
     if args.save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")
