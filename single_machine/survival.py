@@ -17,8 +17,8 @@ n_class=2
 is_mimic = 1
 
 
-train_loader = dl.get_dataloader(is_train=True, batch_size=batch_size)
-test_loader = dl.get_dataloader(is_train=False, batch_size=batch_size)
+train_loader = dl.get_dataloader(is_train=True, batch_size=batch_size, is_mimic=0)
+test_loader = dl.get_dataloader(is_train=False, batch_size=batch_size, is_mimic=1)
 
 
 class Net(nn.Module):

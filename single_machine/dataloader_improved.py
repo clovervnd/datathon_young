@@ -140,9 +140,13 @@ def transform(x):
 
     return transform_x
 
-def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1):
+def get_dataloader(is_train=True, batch_size=32, shuffle=True, num_workers=1, is_mimic=1):
     # all_data = read_db()
-    dataset = TestDataset(is_train = is_train, transform = transform)
+    if is_mimic ==1 : 
+        dataset = TestDataset(filename = "data/MIMIC_DB", is_train = is_train, transform = transform)
+    else:
+        dataset = TestDataset(filename = "data/EICU_DB", is_train = is_train, transform = transform)
+
     # dataset = TestDataset(is_train = is_train)
     dataloader = DataLoader(dataset=dataset,
                               batch_size=batch_size,
