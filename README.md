@@ -2,3 +2,5 @@
 
 Korea Clinical Datathon 2019 second prize
 
+Use python >= 3.6, torch >= 1.1
+
